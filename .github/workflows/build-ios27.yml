@@ -1,0 +1,91 @@
+name: Build iOS 27 inputs
+
+on:
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: Also build the Metal shader seed (may exceed the 6 hour limit)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  assets:
+    runs-on: xcode-27
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: ./.github/actions/bazel
+        with:
+          cache: ios27-assets
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          upload: true
+      - uses: actions/cache/restore@v6.1.0
+        with:
+          path: ~/Library/Caches/switch-ios-bazel/disk
+          key: bazel-disk-ios27-${{ github.sha }}
+          restore-keys: bazel-disk-ios27-
+      - name: Build the iOS 27 release inputs
+        run: bazel build --config=release --config=ios27 --//install:prebuilt=local //release:assets
+      - name: Name the assets
+        id: version
+        run: |
+          version="$(sed -n 's/^[[:space:]]*version = "\(.*\)",.*/\1/p' MODULE.bazel | head -1)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          dist="$RUNNER_TEMP/dist"
+          mkdir "$dist"
+          files="$(bazel cquery --config=release --config=ios27 --//install:prebuilt=local --output=files //release:assets)"
+          for f in $files; do
+            cp "$f" "$dist/ios-on-switch-lmao-$version-$(basename "$f")"
+          done
+          (cd "$dist" && shasum -a 256 -- * > "$RUNNER_TEMP/SHA256SUMS" && mv "$RUNNER_TEMP/SHA256SUMS" SHA256SUMS)
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: ios27-assets
+          path: ${{ runner.temp }}/dist
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/cache/save@v6.1.0
+        with:
+          path: ~/Library/Caches/switch-ios-bazel/disk
+          key: bazel-disk-ios27-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+  seed:
+    needs: assets
+    if: ${{ inputs.seed }}
+    runs-on: xcode-27
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: ./.github/actions/bazel
+        with:
+          cache: ios27-seed
+          buildbuddy-api-key: ${{ secrets.BUILDBUDDY_API_KEY }}
+          upload: true
+      - uses: actions/cache/restore@v6.1.0
+        with:
+          path: ~/Library/Caches/switch-ios-bazel/disk
+          key: bazel-disk-ios27-${{ github.sha }}
+          restore-keys: bazel-disk-ios27-
+      - name: Build the Metal shader seed
+        run: bazel build --config=release --config=ios27 --//install:prebuilt=local //gpu/seed:tree
+      - name: Package the seed
+        run: |
+          tree="$(bazel cquery --config=release --config=ios27 --//install:prebuilt=local --output=files //gpu/seed:tree | head -1)"
+          size="$(bazel cquery --config=release --config=ios27 --//install:prebuilt=local --output=files //gpu/seed:tree_size | head -1)"
+          mkdir -p "$RUNNER_TEMP/seed-root"
+          cp -R "$tree" "$RUNNER_TEMP/seed-root/tree"
+          cp "$size" "$RUNNER_TEMP/seed-root/tree.size.json"
+          tar -C "$RUNNER_TEMP/seed-root" -cf "$RUNNER_TEMP/ios27-seed.tar" tree tree.size.json
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: ios27-seed
+          path: ${{ runner.temp }}/ios27-seed.tar
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/cache/save@v6.1.0
+        with:
+          path: ~/Library/Caches/switch-ios-bazel/disk
+          key: bazel-disk-ios27-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}-seed
