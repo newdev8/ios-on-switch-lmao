@@ -28,7 +28,7 @@ jobs:
           key: bazel-disk-ios27-${{ github.sha }}
           restore-keys: bazel-disk-ios27-
       - name: Build the iOS 27 release inputs
-        run: bazel build --config=release --config=ios27 --//install:prebuilt=local //release:assets
+        run: bazel build --config=ios27 --//install:prebuilt=local //release:assets
       - name: Name the assets
         id: version
         run: |
@@ -36,7 +36,7 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           dist="$RUNNER_TEMP/dist"
           mkdir "$dist"
-          files="$(bazel cquery --config=release --config=ios27 --//install:prebuilt=local --output=files //release:assets)"
+          files="$(bazel cquery --config=ios27 --//install:prebuilt=local --output=files //release:assets)"
           for f in $files; do
             cp "$f" "$dist/ios-on-switch-lmao-$version-$(basename "$f")"
           done
@@ -70,11 +70,11 @@ jobs:
           key: bazel-disk-ios27-${{ github.sha }}
           restore-keys: bazel-disk-ios27-
       - name: Build the Metal shader seed
-        run: bazel build --config=release --config=ios27 --//install:prebuilt=local //gpu/seed:tree
+        run: bazel build --config=ios27 --//install:prebuilt=local //gpu/seed:tree
       - name: Package the seed
         run: |
-          tree="$(bazel cquery --config=release --config=ios27 --//install:prebuilt=local --output=files //gpu/seed:tree | head -1)"
-          size="$(bazel cquery --config=release --config=ios27 --//install:prebuilt=local --output=files //gpu/seed:tree_size | head -1)"
+          tree="$(bazel cquery --config=ios27 --//install:prebuilt=local --output=files //gpu/seed:tree | head -1)"
+          size="$(bazel cquery --config=ios27 --//install:prebuilt=local --output=files //gpu/seed:tree_size | head -1)"
           mkdir -p "$RUNNER_TEMP/seed-root"
           cp -R "$tree" "$RUNNER_TEMP/seed-root/tree"
           cp "$size" "$RUNNER_TEMP/seed-root/tree.size.json"
