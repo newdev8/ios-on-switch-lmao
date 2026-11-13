@@ -144,11 +144,23 @@ release_prelink(
     tags = ["manual"],
 )
 
+release_prelink(
+    name = "release_kernel_12377",
+    inherit_report = "//kernel:dma_prelink_report",
+    kernel = "@switch_release//:kernel",
+    options = "@switch_release//:prelink_options",
+    previous = "//bazel/pinned:prelink/dma-prelink.json",
+    tags = ["manual"],
+)
+
 alias(
     name = "release_kernel",
     actual = select(
-        {"//kernel:xnu_10063_141_1": ":release_kernel_10063"},
-        no_match_error = "the release carries iOS 17's kernel only: build this iOS's with --//install:prebuilt=local",
+        {
+            "//kernel:xnu_10063_141_1": ":release_kernel_10063",
+            "//kernel:xnu_12377_121_6": ":release_kernel_12377",
+        },
+        no_match_error = "the release carries no kernel for this iOS: build it with --//install:prebuilt=local",
     ),
     tags = ["manual"],
 )
@@ -346,7 +358,10 @@ py_binary(
 # bytes; release/ipsw_free.bzl DECLASSIFIED).
 prelink_options(
     name = "kernel_inputs",
-    kernel = "//kernel:kernel_unprelinked",
+    kernel = select({
+        "//kernel:xnu_12377_121_6": "//kernel:kernel_unprelinked_12377",
+        "//conditions:default": "//kernel:kernel_unprelinked",
+    }),
     tags = ["manual"],
 )
 
