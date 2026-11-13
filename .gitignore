@@ -60,3 +60,7 @@ bundles/
 **/.impeccable/live/deferred-svelte-component-accepts.json
 **/.impeccable/live/*.png
 # impeccable-ignore-end
+
+# Local tool state added for this checkout (bazelisk, gh, CI assets)
+/.tools/
+/.release/

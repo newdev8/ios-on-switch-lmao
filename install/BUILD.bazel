@@ -153,8 +153,16 @@ release_prelink(
     tags = ["manual"],
 )
 
-alias(
+# Prelinking the release's kernel needs a report of the Mac's kernelcache; a kind whose report is not pinned takes a
+# kernel that was prelinked elsewhere instead (CI builds //kernel:prelinked):
+#   --//install:release_kernel=@switch_release//:kernel
+label_flag(
     name = "release_kernel",
+    build_setting_default = ":release_kernel_prelinked",
+)
+
+alias(
+    name = "release_kernel_prelinked",
     actual = select(
         {
             "//kernel:xnu_10063_141_1": ":release_kernel_10063",

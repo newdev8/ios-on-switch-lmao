@@ -29,6 +29,11 @@ jobs:
           restore-keys: bazel-disk-ios27-
       - name: Build the iOS 27 release inputs
         run: bazel build --config=ios27 --//install:prebuilt=local //release:assets
+      - name: Package the prelinked kernel
+        run: |
+          kernel="$(bazel cquery --config=ios27 --//install:prebuilt=local --output=files //kernel:prelinked | head -1)"
+          mkdir -p "$RUNNER_TEMP/kernel/inputs/kernel"
+          cp "$kernel" "$RUNNER_TEMP/kernel/inputs/kernel/kernel.macho"
       - name: Name the assets
         id: version
         run: |
@@ -45,6 +50,12 @@ jobs:
         with:
           name: ios27-assets
           path: ${{ runner.temp }}/dist
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: ios27-kernel
+          path: ${{ runner.temp }}/kernel/inputs/kernel/kernel.macho
           if-no-files-found: error
           retention-days: 7
       - uses: actions/cache/save@v6.1.0
