@@ -28,10 +28,10 @@ jobs:
           key: bazel-disk-ios27-${{ github.sha }}
           restore-keys: bazel-disk-ios27-
       - name: Build the iOS 27 release inputs
-        run: bazel build --config=ios27 --//install:prebuilt=local //release:assets
+        run: bazel build --config=ios27 --//install:prebuilt=local --//boot:composition=release //release:assets
       - name: Package the prelinked kernel
         run: |
-          bazel build --config=ios27 --//install:prebuilt=local //kernel:prelinked
+          bazel build --config=ios27 --//install:prebuilt=local --//boot:composition=release //kernel:prelinked
           kernel="$(bazel cquery --config=ios27 --//install:prebuilt=local --output=files //kernel:prelinked | head -1)"
           ls -l "$kernel"
           file "$kernel"

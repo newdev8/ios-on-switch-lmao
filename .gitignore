@@ -64,3 +64,4 @@ bundles/
 # Local tool state added for this checkout (bazelisk, gh, CI assets)
 /.tools/
 /.release/
+/.release-ios27/

@@ -194,6 +194,13 @@ KERNEL_FLAGS=
 if [ "$IOS27" = 1 ] && [ -n "$RELEASE_DIR" ] && [ -f "$RELEASE_DIR/kernel.macho" ]; then
   if ! cmp -s "$RELEASE_DIR/kernel.macho" "$RELEASE_DIR/inputs/kernel/kernel.macho"; then
     cp "$RELEASE_DIR/kernel.macho" "$RELEASE_DIR/inputs/kernel/kernel.macho"
+    # @switch_release links the local inputs (install/release.bzl); the one fetch that predates the copy holds the
+    # artifact's own kernel.
+    "$BAZELISK" shutdown >/dev/null 2>&1 || true
+    OUTPUT_BASE=$("$BAZELISK" info output_base --lockfile_mode=off 2>/dev/null | tail -1 || true)
+    if [ -n "$OUTPUT_BASE" ]; then
+      rm -rf "$OUTPUT_BASE/external/+release+switch_release" "$OUTPUT_BASE/external/@+release+switch_release.marker"
+    fi
   fi
   KERNEL_FLAGS="--//install:release_kernel=@switch_release//:kernel"
   echo "note: using the prelinked kernel in $RELEASE_DIR/kernel.macho." >&2

@@ -6,7 +6,7 @@
 # Boot-args (COMMAND_LINE) live in tools/package/boot_args.py; the ADT edits, USB_HOST and DISPLAY_GAMUT in
 # tools/package/adt_edit.py; the steps and what each reads in boot/defs.bzl.
 load("@bazel_skylib//lib:selects.bzl", "selects")
-load("@bazel_skylib//rules:common_settings.bzl", "bool_flag", "bool_setting")
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag", "bool_setting", "string_flag")
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
 load("@rules_python//python:py_binary.bzl", "py_binary")
 load("@rules_python//python:py_test.bzl", "py_test")
@@ -60,7 +60,25 @@ selects.config_setting_group(
     match_all = [
         "//bazel:debug",
         "//install:from_local",
+        ":composition_local",
     ],
+)
+
+# Which package this build makes: the local debug image's, or the release's while still building its parts here. The
+# iOS 27 kernel has no release build yet, so its CI inputs are composed as release (--//boot:composition=release):
+# the release's boot args, overlay plan and loader profile, but a local debug kernel.
+string_flag(
+    name = "composition",
+    build_setting_default = "local",
+    values = [
+        "local",
+        "release",
+    ],
+)
+
+config_setting(
+    name = "composition_local",
+    flag_values = {":composition": "local"},
 )
 
 # Each IPSW kind's debug image carries the hardware test app built for its iOS version (hw_test_app/BUILD.bazel).

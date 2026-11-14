@@ -166,8 +166,9 @@ def _boot_package_impl(ctx):
     if not prebuilt and not (ctx.file.xcode_env and ctx.file.xcode_identity):
         fail("compiling the loader needs xcode_env and xcode_identity")
     smp = ctx.attr.smp[BuildSettingInfo].value
-    profile = "release" if prebuilt else ctx.attr._profile[BuildSettingInfo].value
-    release = profile == "release"
+    composition = ctx.attr._composition[BuildSettingInfo].value
+    release = prebuilt or composition == "release"
+    profile = "release" if release else ctx.attr._profile[BuildSettingInfo].value
 
     # --- boot-args, overlay plan, ADT ------------------------------------------------------------------------------
     boot_args = out("boot-args.txt")
@@ -444,6 +445,7 @@ boot_package = rule(
         "_gpu_trustcache": attr.label(default = "//boot:gpu_trustcache"),
         "_kind": attr.label(default = "//ipsw:kind"),
         "_profile": attr.label(default = "//bazel:profile"),
+        "_composition": attr.label(default = "//boot:composition"),
         # Only the loader's compile runs Xcode: a package staging the release's loader names neither, so the image
         # builder's graph on a Mac without Xcode holds none of @xcode's stand-ins.
         "xcode_env": attr.label(allow_single_file = True, doc = "@xcode//:xcode.env, unless the loader is prebuilt"),

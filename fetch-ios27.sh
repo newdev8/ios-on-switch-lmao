@@ -37,7 +37,7 @@ if [ -z "$RUN" ]; then
 fi
 [ -n "$RUN" ] || { echo "error: no build-ios27.yml run found in $FORK" >&2; exit 1; }
 
-TMP=$(mktemp -d .release-ios27.XXXXXX)
+TMP=$(mktemp -d "$PWD/.release-ios27.XXXXXX")
 trap 'rm -rf "$TMP"' EXIT
 
 echo "Downloading ios27-assets from $FORK run $RUN..."

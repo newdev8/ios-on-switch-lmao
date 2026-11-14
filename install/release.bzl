@@ -65,6 +65,10 @@ def _release_impl(rctx):
     version = rctx.attr.version
     local = rctx.getenv("SWITCH_RELEASE_DIR")
     base = "file://" + local if local else "https://github.com/{}/releases/download/{}".format(REPO, version)
+    # A local release directory holds the extracted image inputs, and the checkout may have replaced a file in them
+    # since the artifact was built (run-image.sh: the kernel prelinked in CI). Link them, so the build reads the
+    # directory; a remote release still takes the tars its SHA256SUMS names.
+    extracted_inputs = bool(local) and rctx.path(local + "/inputs").exists
     if not version or not rctx.download(url = base + "/SHA256SUMS", output = "SHA256SUMS", allow_fail = True).success:
         message = "no release assets for version \"{}\" at {}: build them locally (--//install:prebuilt=local)".format(
             version,
@@ -75,6 +79,9 @@ def _release_impl(rctx):
         return
     sums = _sums(rctx.read("SHA256SUMS"))
     for directory, suffix in ASSETS.items():
+        if extracted_inputs and directory == "inputs":
+            rctx.symlink(local + "/inputs", "inputs")
+            continue
         name = "ios-on-switch-lmao-{}-{}".format(version, suffix)
         if name not in sums:
             fail("release {}: SHA256SUMS lists no {}".format(version, name))
