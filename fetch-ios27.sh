@@ -106,12 +106,12 @@ fi
 
 echo "Downloading ios27-seed from $FORK run $RUN..."
 if "$GH" run download "$RUN" -R "$FORK" -n ios27-seed -D "$TMP/seed"; then
-  SEED_TAR=$(find "$TMP/seed" -name 'ios27-seed.tar' | head -1)
+  SEED_TAR=$(find "$TMP/seed" -name 'ios27-seed.tar*' | head -1)
   if [ -n "$SEED_TAR" ]; then
     mkdir -p "$TMP/assets/seed"
     tar -xf "$SEED_TAR" -C "$TMP/assets/seed"
   else
-    echo "warning: ios27-seed has no ios27-seed.tar; building without it" >&2
+    echo "warning: ios27-seed has no ios27-seed.tar*; building without it" >&2
   fi
 else
   echo "warning: no ios27-seed artifact; building without the seed" >&2

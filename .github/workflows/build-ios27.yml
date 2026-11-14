@@ -31,7 +31,10 @@ jobs:
         run: bazel build --config=ios27 --//install:prebuilt=local //release:assets
       - name: Package the prelinked kernel
         run: |
+          bazel build --config=ios27 --//install:prebuilt=local //kernel:prelinked
           kernel="$(bazel cquery --config=ios27 --//install:prebuilt=local --output=files //kernel:prelinked | head -1)"
+          ls -l "$kernel"
+          file "$kernel"
           mkdir -p "$RUNNER_TEMP/kernel/inputs/kernel"
           cp "$kernel" "$RUNNER_TEMP/kernel/inputs/kernel/kernel.macho"
       - name: Name the assets
@@ -86,17 +89,22 @@ jobs:
         run: |
           tree="$(bazel cquery --config=ios27 --//install:prebuilt=local --output=files //gpu/seed:tree | head -1)"
           size="$(bazel cquery --config=ios27 --//install:prebuilt=local --output=files //gpu/seed:tree_size | head -1)"
-          mkdir -p "$RUNNER_TEMP/seed-root"
-          cp -R "$tree" "$RUNNER_TEMP/seed-root/tree"
-          cp "$size" "$RUNNER_TEMP/seed-root/tree.size.json"
-          tar -C "$RUNNER_TEMP/seed-root" -cf "$RUNNER_TEMP/ios27-seed.tar" tree tree.size.json
+          echo "seed tree: $tree"
+          cat "$size"; echo
+          du -sh "$tree"
+          df -h /
+          # The archive is the tree's bytes and nothing else; the build's packs and the disk cache under it only need
+          # a fraction of the room the tree does.
+          bazel shutdown
+          rm -rf "$HOME/Library/Caches/switch-ios-bazel/disk"
+          mkdir -p "$RUNNER_TEMP/seed"
+          tar -C "$(dirname "$tree")" -czf "$RUNNER_TEMP/seed/ios27-seed.tar.gz" \
+            "$(basename "$tree")" "$(basename "$size")"
+          ls -l "$RUNNER_TEMP/seed"
+          df -h /
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: ios27-seed
-          path: ${{ runner.temp }}/ios27-seed.tar
+          path: ${{ runner.temp }}/seed/ios27-seed.tar.gz
           if-no-files-found: error
           retention-days: 7
-      - uses: actions/cache/save@v6.1.0
-        with:
-          path: ~/Library/Caches/switch-ios-bazel/disk
-          key: bazel-disk-ios27-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}-seed
